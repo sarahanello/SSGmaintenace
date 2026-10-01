@@ -27,7 +27,7 @@ label{display:block;font-size:13px;font-weight:700;margin:12px 0 5px}input,selec
 <h2>Send / Complete Inspection</h2>
 <p>When finished, create the Word report and then email/share it.</p>
 <div class="report-buttons">
-<button type="button" onclick="downloadWordReport()">Download Word Report</button>
+<button type="button" onclick="downloadWordReport()">Download Word Report with Photos</button>
 <button type="button" class="secondary" onclick="emailDraft()">Draft Email to Sarah</button>
 <button type="button" class="secondary" onclick="shareWordReport()">Share Word Report</button>
 </div>
@@ -65,10 +65,18 @@ async function getReport(){
 function photoHtml(photos){if(!photos?.length)return '<span style="color:#777">No photos attached</span>';return photos.map(p=>`<div style="margin:10px 0 18px;page-break-inside:avoid"><div style="font-size:11pt;margin-bottom:5px">${esc(p.name)}</div><img src="${p.data}" style="max-width:650px;width:auto;height:auto;max-height:500px;display:block;border:1px solid #ccc"></div>`).join('');}
 async function makeWord(){
  const r=await getReport();
- const rows=r.rows.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.status)}</td><td>${esc(x.note)}</td><td>${photoHtml(x.photos)}</td></tr>`).join('');
- return `<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:Arial;margin:30px;color:#17202a}h1{color:#17324d}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:8px;text-align:left;vertical-align:top}th{background:#eef2f6}img{max-width:650px;height:auto}</style></head><body><h1>SSG Maintenance Inspection App</h1><h2>${esc(r.info.title)}</h2><table><tr><th>Property</th><td>${esc(r.info.property)}</td></tr><tr><th>Address</th><td>${esc(r.info.address)}</td></tr><tr><th>Inspection Date</th><td>${esc(r.info.date)}</td></tr><tr><th>Conducted By</th><td>${esc(r.info.technician)}</td></tr></table><h2>Inspection Results</h2><table><tr><th>Item</th><th>Status</th><th>Notes</th><th>Photos</th></tr>${rows}</table></body></html>`;
+ const escRtf=t=>String(t||'').replace(/\\/g,'\\\\').replace(/{/g,'\\{').replace(/}/g,'\\}').replace(/\r?\n/g,'\\line ');
+ const hex=b64=>{const raw=atob(b64.split(',')[1]||'');let out='';for(let i=0;i<raw.length;i++)out+=raw.charCodeAt(i).toString(16).padStart(2,'0');return out;};
+ const photoRtf=photos=>{if(!photos?.length)return '\\i No photos attached\\i0\\par ';return photos.map(p=>{const mime=(p.data.match(/^data:([^;]+);/)||[])[1]||'image/jpeg';const b64=p.data.split(',')[1]||'';const blip=mime.includes('png')?'\\pngblip':mime.includes('gif')?'\\pngblip':'\\jpegblip';return `{\\pard\\b ${escRtf(p.name)}\\b0\\par {\\pict${blip}\\picwgoal9000\\pichgoal6500 ${hex(p.data)}}\\par}`;}).join('');};
+ let out='{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0 Arial;}}\\viewkind4\\uc1\\f0\\fs22 ';
+ out+='\\b\\fs32 SSG Maintenance Inspection App\\b0\\fs22\\par ';
+ out+=`\\b\\fs28 ${escRtf(r.info.title)}\\b0\\fs22\\par\\par`;
+ out+=`\\b Property:\\b0 ${escRtf(r.info.property)}\\par\\b Address:\\b0 ${escRtf(r.info.address)}\\par\\b Inspection Date:\\b0 ${escRtf(r.info.date)}\\par\\b Conducted By:\\b0 ${escRtf(r.info.technician)}\\par\\par`;
+ out+='\\b\\fs28 Inspection Results\\b0\\fs22\\par';
+ for(const x of r.rows){out+=`\\b Item:\\b0 ${escRtf(x.name)}\\par\\b Status:\\b0 ${escRtf(x.status)}\\par\\b Notes:\\b0 ${escRtf(x.note)}\\par\\b Photos:\\b0\\par${photoRtf(x.photos)}\\par`;}
+ return out+'}';
 }
-async function downloadWordReport(){const r=await getReport(),content=await makeWord();const blob=new Blob([content],{type:'application/msword'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`SSG_${(r.info.property||'Inspection').replace(/[^a-z0-9]+/gi,'_')}_Report.doc`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);}
+async function downloadWordReport(){const r=await getReport(),content=await makeWord();const blob=new Blob([content],{type:'application/rtf'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`SSG_${(r.info.property||'Inspection').replace(/[^a-z0-9]+/gi,'_')}_Report.rtf`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);}
 async function emailDraft(){const r=await getReport();const subject=encodeURIComponent(`Completed ${r.info.title} - ${r.info.property}`);const body=encodeURIComponent(`Hi Sarah,\n\nAttached is the completed ${r.info.title}.\n\nProperty: ${r.info.property}\nAddress: ${r.info.address}\nInspection Date: ${r.info.date}\nConducted By: ${r.info.technician}\n\nThe Word report includes the inspection photos. Please attach the downloaded Word report before sending.\n\nThank you.`);window.location.href=`mailto:Sarah@ssgcommercial.com?subject=${subject}&body=${body}`;}
-async function shareWordReport(){const r=await getReport(),content=await makeWord();const file=new File([content],`SSG_${(r.info.property||'Inspection').replace(/[^a-z0-9]+/gi,'_')}_Report.doc`,{type:'application/msword'});if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){try{await navigator.share({title:'SSG Maintenance Inspection Report',text:`${r.info.title} - ${r.info.property}`,files:[file]});return;}catch(e){}}const blob=new Blob([content],{type:'application/msword'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);alert('The Word report was downloaded with the inspection photos. You can attach it to your email.');}
+async function shareWordReport(){const r=await getReport(),content=await makeWord();const file=new File([content],`SSG_${(r.info.property||'Inspection').replace(/[^a-z0-9]+/gi,'_')}_Report.rtf`,{type:'application/rtf'});if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){try{await navigator.share({title:'SSG Maintenance Inspection Report',text:`${r.info.title} - ${r.info.property}`,files:[file]});return;}catch(e){}}const blob=new Blob([content],{type:'application/rtf'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);alert('The Word-compatible report was downloaded with the inspection photos.');}
 </script></body></html>
