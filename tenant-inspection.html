@@ -42,66 +42,29 @@ function fillAddress(){
 function val(id){return document.getElementById(id)?.value||""}
 function selected(id){const e=document.getElementById(id);return e&&e.selectedIndex>=0?e.options[e.selectedIndex].text:""}
 function esc(s){return String(s||"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
-function getReport(){
+async function fileToDataURL(file){
+ return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file);});
+}
+async function getReport(){
  const rows=[];
- document.querySelectorAll(".item").forEach(item=>{
-   const name=item.querySelector("strong")?.textContent?.trim()||"";
-   const status=item.querySelector('input[type="radio"]:checked')?.parentElement?.textContent?.trim()||"Not marked";
-   const note=item.querySelector("textarea")?.value||"";
-   rows.push({name,status,note});
- });
- const info={
-  title:document.title.replace(" | SSG Maintenance Inspection App",""),
-  property:selected("property"),address:val("address"),
-  date:document.querySelector('input[type="date"]')?.value||"",
-  technician:selected("technician")
- };
+ for(const item of [...document.querySelectorAll('.item')]){
+   const name=item.querySelector('strong')?.textContent?.trim()||'';
+   const status=item.querySelector('input[type="radio"]:checked')?.parentElement?.textContent?.trim()||'Not marked';
+   const note=item.querySelector('textarea')?.value||'';
+   const photoInput=item.querySelector('input[type="file"]'); const photos=[];
+   if(photoInput?.files?.length) for(const file of [...photoInput.files]){try{photos.push({name:file.name,data:await fileToDataURL(file)});}catch(e){}}
+   rows.push({name,status,note,photos});
+ }
+ const info={title:document.title.replace(' | SSG Maintenance Inspection App',''),property:selected('property'),address:val('address'),date:document.querySelector('input[type="date"]')?.value||'',technician:selected('technician')};
  return {info,rows};
 }
-function makeWord(){
- const r=getReport();
- let rows=r.rows.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.status)}</td><td>${esc(x.note)}</td></tr>`).join("");
- return `<!doctype html><html><head><meta charset="utf-8"><style>
- body{font-family:Arial;margin:30px;color:#17202a}h1{color:#17324d}table{border-collapse:collapse;width:100%}
- th,td{border:1px solid #ccc;padding:8px;text-align:left;vertical-align:top}th{background:#eef2f6}
- </style></head><body><h1>SSG Maintenance Inspection App</h1><h2>${esc(r.info.title)}</h2>
- <table><tr><th>Property</th><td>${esc(r.info.property)}</td></tr>
- <tr><th>Address</th><td>${esc(r.info.address)}</td></tr>
- <tr><th>Inspection Date</th><td>${esc(r.info.date)}</td></tr>
- <tr><th>Conducted By</th><td>${esc(r.info.technician)}</td></tr></table>
- <h2>Inspection Results</h2><table><tr><th>Item</th><th>Status</th><th>Notes</th></tr>${rows}</table>
- </body></html>`;
+function photoHtml(photos){if(!photos?.length)return '<span style="color:#777">No photos attached</span>';return photos.map(p=>`<div style="margin:10px 0 18px;page-break-inside:avoid"><div style="font-size:11pt;margin-bottom:5px">${esc(p.name)}</div><img src="${p.data}" style="max-width:650px;width:auto;height:auto;max-height:500px;display:block;border:1px solid #ccc"></div>`).join('');}
+async function makeWord(){
+ const r=await getReport();
+ const rows=r.rows.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.status)}</td><td>${esc(x.note)}</td><td>${photoHtml(x.photos)}</td></tr>`).join('');
+ return `<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:Arial;margin:30px;color:#17202a}h1{color:#17324d}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:8px;text-align:left;vertical-align:top}th{background:#eef2f6}img{max-width:650px;height:auto}</style></head><body><h1>SSG Maintenance Inspection App</h1><h2>${esc(r.info.title)}</h2><table><tr><th>Property</th><td>${esc(r.info.property)}</td></tr><tr><th>Address</th><td>${esc(r.info.address)}</td></tr><tr><th>Inspection Date</th><td>${esc(r.info.date)}</td></tr><tr><th>Conducted By</th><td>${esc(r.info.technician)}</td></tr></table><h2>Inspection Results</h2><table><tr><th>Item</th><th>Status</th><th>Notes</th><th>Photos</th></tr>${rows}</table></body></html>`;
 }
-function downloadWordReport(){
- const r=getReport(), blob=new Blob([makeWord()],{type:"application/msword"});
- const a=document.createElement("a");a.href=URL.createObjectURL(blob);
- a.download=`SSG_${(r.info.property||"Inspection").replace(/[^a-z0-9]+/gi,"_")}_Report.doc`;a.click();
- setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-}
-function emailDraft(){
- const r=getReport();
- const subject=encodeURIComponent(`Completed ${r.info.title} - ${r.info.property}`);
- const body=encodeURIComponent(`Hi Sarah,
-
-Attached is the completed ${r.info.title}.
-
-Property: ${r.info.property}
-Address: ${r.info.address}
-Inspection Date: ${r.info.date}
-Conducted By: ${r.info.technician}
-
-I have completed the inspection and included the Word report for review.
-
-Thank you.`);
- window.location.href=`mailto:Sarah@ssgcommercial.com?subject=${subject}&body=${body}`;
-}
-async function shareWordReport(){
- const r=getReport();
- const file=new File([makeWord()],`SSG_${(r.info.property||"Inspection").replace(/[^a-z0-9]+/gi,"_")}_Report.doc`,{type:"application/msword"});
- if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
-   try{await navigator.share({title:"SSG Maintenance Inspection Report",text:`${r.info.title} - ${r.info.property}`,files:[file]});return;}catch(e){}
- }
- downloadWordReport();
- alert("The Word report was downloaded. Use your phone's Share option or attach the downloaded report to the email draft.");
-}
+async function downloadWordReport(){const r=await getReport(),content=await makeWord();const blob=new Blob([content],{type:'application/msword'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`SSG_${(r.info.property||'Inspection').replace(/[^a-z0-9]+/gi,'_')}_Report.doc`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);}
+async function emailDraft(){const r=await getReport();const subject=encodeURIComponent(`Completed ${r.info.title} - ${r.info.property}`);const body=encodeURIComponent(`Hi Sarah,\n\nAttached is the completed ${r.info.title}.\n\nProperty: ${r.info.property}\nAddress: ${r.info.address}\nInspection Date: ${r.info.date}\nConducted By: ${r.info.technician}\n\nThe Word report includes the inspection photos. Please attach the downloaded Word report before sending.\n\nThank you.`);window.location.href=`mailto:Sarah@ssgcommercial.com?subject=${subject}&body=${body}`;}
+async function shareWordReport(){const r=await getReport(),content=await makeWord();const file=new File([content],`SSG_${(r.info.property||'Inspection').replace(/[^a-z0-9]+/gi,'_')}_Report.doc`,{type:'application/msword'});if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){try{await navigator.share({title:'SSG Maintenance Inspection Report',text:`${r.info.title} - ${r.info.property}`,files:[file]});return;}catch(e){}}const blob=new Blob([content],{type:'application/msword'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);alert('The Word report was downloaded with the inspection photos. You can attach it to your email.');}
 </script></body></html>
