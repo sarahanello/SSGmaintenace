@@ -21,10 +21,89 @@ label{display:block;font-size:13px;font-weight:700;margin:12px 0 5px}input,selec
 <div class="card"><h2>Roof Equipment</h2><div class="item"><strong>Roof-mounted equipment</strong><div class="checks"><label><input type="radio" name="Roof EquipmentRoof-mounted equipment"> Good</label><label><input type="radio" name="Roof EquipmentRoof-mounted equipment"> Fair</label><label><input type="radio" name="Roof EquipmentRoof-mounted equipment"> Needs Attention</label><label><input type="radio" name="Roof EquipmentRoof-mounted equipment"> N/A</label></div><label>Photos — select multiple</label><input type="file" accept="image/*" multiple><label>Notes</label><textarea></textarea></div><div class="item"><strong>Access / walk pads</strong><div class="checks"><label><input type="radio" name="Roof EquipmentAccess / walk pads"> Good</label><label><input type="radio" name="Roof EquipmentAccess / walk pads"> Fair</label><label><input type="radio" name="Roof EquipmentAccess / walk pads"> Needs Attention</label><label><input type="radio" name="Roof EquipmentAccess / walk pads"> N/A</label></div><label>Photos — select multiple</label><input type="file" accept="image/*" multiple><label>Notes</label><textarea></textarea></div></div>
 <div class="card"><h2>Roof Photos</h2><div class="item"><strong>Roof Photos condition</strong><div class="checks"><label><input type="radio" name="Roof PhotosRoof Photos condition"> Good</label><label><input type="radio" name="Roof PhotosRoof Photos condition"> Fair</label><label><input type="radio" name="Roof PhotosRoof Photos condition"> Needs Attention</label><label><input type="radio" name="Roof PhotosRoof Photos condition"> N/A</label></div><label>Photos — select multiple</label><input type="file" accept="image/*" multiple><label>Notes</label><textarea></textarea></div><div class="item"><strong>Damage / deficiency</strong><div class="checks"><label><input type="radio" name="Roof PhotosDamage / deficiency"> Good</label><label><input type="radio" name="Roof PhotosDamage / deficiency"> Fair</label><label><input type="radio" name="Roof PhotosDamage / deficiency"> Needs Attention</label><label><input type="radio" name="Roof PhotosDamage / deficiency"> N/A</label></div><label>Photos — select multiple</label><input type="file" accept="image/*" multiple><label>Notes</label><textarea></textarea></div><div class="item"><strong>Other</strong><div class="checks"><label><input type="radio" name="Roof PhotosOther"> Good</label><label><input type="radio" name="Roof PhotosOther"> Fair</label><label><input type="radio" name="Roof PhotosOther"> Needs Attention</label><label><input type="radio" name="Roof PhotosOther"> N/A</label></div><label>Photos — select multiple</label><input type="file" accept="image/*" multiple><label>Notes</label><textarea></textarea></div></div>
 <div class="card"><h2>Technician Notes</h2><textarea></textarea></div>
-</main><script>
+<div class="card report-card">
+<h2>Send / Complete Inspection</h2>
+<p>When finished, create the Word report and then email/share it.</p>
+<div class="report-buttons">
+<button type="button" onclick="downloadWordReport()">Download Word Report</button>
+<button type="button" class="secondary" onclick="emailDraft()">Draft Email to Sarah</button>
+<button type="button" class="secondary" onclick="shareWordReport()">Share Word Report</button>
+</div>
+<p class="report-help">Email draft: Sarah@ssgcommercial.com</p>
+</div></main><script>
 const PROPERTY_ADDRESSES=["14020 N 46th Street, Tampa, FL 33613-2813", "1032-1098 Montgomery Road, Altamonte Springs, FL 32714", "13123-13145 Kings Lake Drive, Gibsonton, FL 33534", "13145 Kings Lake Drive, 6-101, 6-102, Gibsonton, FL 33534", "903-1101 W. Brandon Blvd., Brandon, FL 33511", "12206 Bruce B. Downs Blvd, Tampa, FL 33612", "12210 Bruce B. Downs Blvd, Tampa, FL 33612", "1861 N Highland Ave., Clearwater, FL 33755", "16627-16641 Fishhawk Blvd., Lithia, FL 33547", "5454-5486 Lithia Pinecrest Road, Lithia, FL 33547", "16617 Fishhawk Blvd., Lithia, FL 33547", "202-238 E. Bearss Ave. (110 E Bearss o/p), Tampa, FL 33613", "16707 - 16769 Fishhawk Blvd., Lithia, FL 33547", "202, 204, 206 N. Howard Ave.; 2303 West N. A. St., Tampa, FL 33606", "1702, 1704 N. Howard Ave., Tampa, FL 33607", "6301 - 6302 Interbay Commons Way, Tampa, FL 33611", "10522-10548 Lake St. Charles Blvd., Riverview, FL 33578", "27814 Grove Isle Drive, Wesley Chapel, FL 33544", "7400-7700 49th Street N, Pinellas Park, FL 33781", "5454-5486 Lithia Pinecrest Road, Lithia, FL 33547", "2111 W Swann Ave., Tampa, FL 33606", "204 N Howard Ave, Tampa, FL 33606", "7643-7657 SR 54 (54 & Cita Lane), New Port Richey, FL 34653-6217", "15258-15282 Fishhawk Blvd, Lithia, FL 33547", "14530 N 42nd Street, Tampa, FL 33613-2813", "1861-1895 N. Highland Ave.; 1521-1527 Sunset Point Road, Clearwater, FL 33755", "204 N Howard Ave., Tampa, FL 33606", "2106 W Main Street, Tampa, FL 33607", "7505-7605 W. Hillsborough Ave., Tampa, FL 33615", "7004-7340 W. Waters Ave., Tampa, FL 33634", "309, 311 South Willow Ave., Unit 1,2,3, Tampa, FL 33606"];
 function fillAddress(){
   const i=document.getElementById("property").value;
   document.getElementById("address").value=i===""?"":PROPERTY_ADDRESSES[Number(i)];
+}
+</script><style>
+.report-card{margin-top:16px}.report-buttons{display:flex;gap:10px;flex-wrap:wrap}
+.report-buttons button{border:0;border-radius:9px;padding:12px 16px;background:#2563eb;color:#fff;font-weight:700;cursor:pointer}
+.report-buttons button.secondary{background:#17324d}.report-help{font-size:13px;color:#667085}
+</style><script>
+function val(id){return document.getElementById(id)?.value||""}
+function selected(id){const e=document.getElementById(id);return e&&e.selectedIndex>=0?e.options[e.selectedIndex].text:""}
+function esc(s){return String(s||"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function getReport(){
+ const rows=[];
+ document.querySelectorAll(".item").forEach(item=>{
+   const name=item.querySelector("strong")?.textContent?.trim()||"";
+   const status=item.querySelector('input[type="radio"]:checked')?.parentElement?.textContent?.trim()||"Not marked";
+   const note=item.querySelector("textarea")?.value||"";
+   rows.push({name,status,note});
+ });
+ const info={
+  title:document.title.replace(" | SSG Maintenance Inspection App",""),
+  property:selected("property"),address:val("address"),
+  date:document.querySelector('input[type="date"]')?.value||"",
+  technician:selected("technician")
+ };
+ return {info,rows};
+}
+function makeWord(){
+ const r=getReport();
+ let rows=r.rows.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.status)}</td><td>${esc(x.note)}</td></tr>`).join("");
+ return `<!doctype html><html><head><meta charset="utf-8"><style>
+ body{font-family:Arial;margin:30px;color:#17202a}h1{color:#17324d}table{border-collapse:collapse;width:100%}
+ th,td{border:1px solid #ccc;padding:8px;text-align:left;vertical-align:top}th{background:#eef2f6}
+ </style></head><body><h1>SSG Maintenance Inspection App</h1><h2>${esc(r.info.title)}</h2>
+ <table><tr><th>Property</th><td>${esc(r.info.property)}</td></tr>
+ <tr><th>Address</th><td>${esc(r.info.address)}</td></tr>
+ <tr><th>Inspection Date</th><td>${esc(r.info.date)}</td></tr>
+ <tr><th>Conducted By</th><td>${esc(r.info.technician)}</td></tr></table>
+ <h2>Inspection Results</h2><table><tr><th>Item</th><th>Status</th><th>Notes</th></tr>${rows}</table>
+ </body></html>`;
+}
+function downloadWordReport(){
+ const r=getReport(), blob=new Blob([makeWord()],{type:"application/msword"});
+ const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+ a.download=`SSG_${(r.info.property||"Inspection").replace(/[^a-z0-9]+/gi,"_")}_Report.doc`;a.click();
+ setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function emailDraft(){
+ const r=getReport();
+ const subject=encodeURIComponent(`Completed ${r.info.title} - ${r.info.property}`);
+ const body=encodeURIComponent(`Hi Sarah,
+
+Attached is the completed ${r.info.title}.
+
+Property: ${r.info.property}
+Address: ${r.info.address}
+Inspection Date: ${r.info.date}
+Conducted By: ${r.info.technician}
+
+I have completed the inspection and included the Word report for review.
+
+Thank you.`);
+ window.location.href=`mailto:Sarah@ssgcommercial.com?subject=${subject}&body=${body}`;
+}
+async function shareWordReport(){
+ const r=getReport();
+ const file=new File([makeWord()],`SSG_${(r.info.property||"Inspection").replace(/[^a-z0-9]+/gi,"_")}_Report.doc`,{type:"application/msword"});
+ if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
+   try{await navigator.share({title:"SSG Maintenance Inspection Report",text:`${r.info.title} - ${r.info.property}`,files:[file]});return;}catch(e){}
+ }
+ downloadWordReport();
+ alert("The Word report was downloaded. Use your phone's Share option or attach the downloaded report to the email draft.");
 }
 </script></body></html>
