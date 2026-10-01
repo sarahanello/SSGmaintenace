@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#17324d">
+<title>Property Inspection</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4f6f8;color:#17202a;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+header{background:#17324d;color:#fff;padding:28px 20px}header h1{margin:0;font-size:28px}header p{margin:7px 0 0;color:#dce6ef}
+main{max-width:900px;margin:0 auto;padding:22px 16px}.intro{background:#fff;border:1px solid #d9e0e7;border-radius:16px;padding:20px;margin-bottom:18px}
+.intro h2{margin:0 0 6px}.intro p{margin:0;color:#667085}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+a.card{display:block;background:#fff;border:1px solid #d9e0e7;border-radius:16px;padding:24px;text-decoration:none;color:#17202a;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+a.card:hover{border-color:#2563eb;box-shadow:0 4px 14px rgba(0,0,0,.09)}
+.icon{font-size:34px}.card h3{margin:12px 0 6px;font-size:18px}.card p{margin:0;color:#667085;font-size:14px}
+@media(max-width:620px){.grid{grid-template-columns:1fr}header{padding:22px 16px}}
+</style>
+</head>
+<body>
+<header><h1>Property Inspection</h1><p>Select the inspection you are performing.</p></header>
+<main>
+<div class="intro"><h2>Choose Inspection</h2><p>Select one option below to begin.</p></div>
+<div class="grid">
+<a class="card" href="tenant-inspection.html"><div class="icon">🏢</div><h3>Tenant Inspection</h3><p>Inspect an occupied tenant space.</p></a>
+<a class="card" href="move-out-inspection.html"><div class="icon">🚪</div><h3>Move-Out Inspection</h3><p>Document the tenant space at move-out.</p></a>
+<a class="card" href="vacant-unit-inspection.html"><div class="icon">🏠</div><h3>Vacant Unit Inspection</h3><p>Inspect an empty unit and turn needs.</p></a>
+<a class="card" href="exterior-property-inspection.html"><div class="icon">🏬</div><h3>Exterior Property Inspection</h3><p>Inspect the building, grounds and site.</p></a>
+<a class="card" href="roof-inspection.html"><div class="icon">🏗️</div><h3>Roof Inspection</h3><p>Inspect roof surfaces, drainage and penetrations.</p></a>
+<a class="card" href="hvac-inspection.html"><div class="icon">❄️</div><h3>HVAC Inspection</h3><p>Inspect HVAC equipment and operation.</p></a>
+</div>
+</main>
+</body>
+</html>

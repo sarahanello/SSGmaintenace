@@ -1,0 +1,1 @@
+const CACHE="property-inspection-static-v1";self.addEventListener("install",e=>self.skipWaiting());self.addEventListener("activate",e=>e.waitUntil(self.clients.claim()));
