@@ -77,4 +77,63 @@ async function makeWord(){
 async function downloadWordReport(){const r=await getReport(),content=await makeWord();const blob=new Blob([content],{type:'application/rtf'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`SSG_${(r.info.property||'Inspection').replace(/[^a-z0-9]+/gi,'_')}_Report.rtf`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);}
 async function emailDraft(){const r=await getReport();const subject=encodeURIComponent(`Completed ${r.info.title} - ${r.info.property}`);const body=encodeURIComponent(`Hi Sarah,\n\nAttached is the completed ${r.info.title}.\n\nProperty: ${r.info.property}\nAddress: ${r.info.address}\nInspection Date: ${r.info.date}\nConducted By: ${r.info.technician}\n\nThe Word report includes the inspection photos. Please attach the downloaded Word report before sending.\n\nThank you.`);window.location.href=`mailto:Sarah@ssgcommercial.com?subject=${subject}&body=${body}`;}
 async function shareWordReport(){const r=await getReport(),content=await makeWord();const file=new File([content],`SSG_${(r.info.property||'Inspection').replace(/[^a-z0-9]+/gi,'_')}_Report.rtf`,{type:'application/rtf'});if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){try{await navigator.share({title:'SSG Maintenance Inspection Report',text:`${r.info.title} - ${r.info.property}`,files:[file]});return;}catch(e){}}const blob=new Blob([content],{type:'application/rtf'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);alert('The Word-compatible report was downloaded with the inspection photos.');}
-</script></body></html>
+</script>
+<script>
+/* SSG Maintenance Inspection App - Saved Drafts + Auto-Save */
+(function(){
+ const DB_NAME='SSGMaintenanceInspectionDB', STORE='drafts', DB_VERSION=1;
+ let draftId=new URLSearchParams(location.search).get('draft')||'';
+ let draftPhotos={};
+ let saveTimer=null, saving=false;
+ const pageTitle=document.title.replace(' | SSG Maintenance Inspection App','');
+ function openDB(){return new Promise((resolve,reject)=>{const r=indexedDB.open(DB_NAME,DB_VERSION);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(STORE))r.result.createObjectStore(STORE,{keyPath:'id'});};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}
+ async function dbPut(obj){const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(obj);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});}
+ async function dbGet(id){const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readonly');const r=tx.objectStore(STORE).get(id);r.onsuccess=()=>res(r.result||null);r.onerror=()=>rej(r.error);});}
+ async function dbAll(){const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readonly');const r=tx.objectStore(STORE).getAll();r.onsuccess=()=>res(r.result||[]);r.onerror=()=>rej(r.error);});}
+ async function dbDelete(id){const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).delete(id);tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});}
+ function controls(){return [...document.querySelectorAll('input:not([type=file]), select, textarea')];}
+ function snapshotFields(){return controls().map((e,i)=>({i,tag:e.tagName,type:e.type||'',value:e.value,checked:!!e.checked}));}
+ async function filesToData(files){const out=[];for(const f of [...files]){const data=await new Promise((resolve,reject)=>{const rd=new FileReader();rd.onload=()=>resolve(rd.result);rd.onerror=reject;rd.readAsDataURL(f);});out.push({name:f.name,data});}return out;}
+ function showStatus(msg,good=true){let s=document.getElementById('save-status');if(!s)return;s.textContent=msg;s.style.color=good?'#176b3a':'#a33';setTimeout(()=>{if(s.textContent===msg)s.textContent='';},2500);}
+ function addSaveUI(){
+   const header=document.querySelector('header'); if(header&&!document.getElementById('save-top')){const b=document.createElement('button');b.id='save-top';b.type='button';b.textContent='💾 Save Inspection';b.onclick=saveDraft;b.style.cssText='margin-top:12px;border:0;border-radius:9px;padding:11px 15px;background:#fff;color:#17324d;font-weight:800;cursor:pointer';header.appendChild(b);}
+   const card=document.querySelector('.report-card'); if(card&&!document.getElementById('save-bottom')){const b=document.createElement('button');b.id='save-bottom';b.type='button';b.textContent='💾 Save Inspection';b.onclick=saveDraft;b.style.cssText='border:0;border-radius:9px;padding:12px 16px;background:#198754;color:#fff;font-weight:800;cursor:pointer;margin-right:8px';card.querySelector('.report-buttons')?.prepend(b);}
+   if(card&&!document.getElementById('save-status')){const s=document.createElement('span');s.id='save-status';s.style.cssText='font-size:13px;font-weight:700;margin-left:4px';card.appendChild(s);}
+ }
+ async function saveDraft(manual=false){
+   if(saving)return; saving=true;
+   try{
+     if(!draftId) draftId='draft_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+     const inputs=[...document.querySelectorAll('input[type=file]')];
+     for(let i=0;i<inputs.length;i++) if(inputs[i].files?.length){const fresh=await filesToData(inputs[i].files);draftPhotos[i]=[...(draftPhotos[i]||[]),...fresh];inputs[i].value='';renderPhotoCount(i);}
+     const property=document.getElementById('property');
+     const obj={id:draftId,type:pageTitle,updatedAt:Date.now(),property:property?.options[property.selectedIndex]?.text||'',address:document.getElementById('address')?.value||'',technician:document.getElementById('technician')?.value||'',fields:snapshotFields(),photos:draftPhotos};
+     await dbPut(obj);
+     if(!new URLSearchParams(location.search).get('draft')) history.replaceState({},'',location.pathname+'?draft='+encodeURIComponent(draftId));
+     showStatus(manual?'Saved ✓':'Auto-saved ✓');
+   }catch(e){console.error(e);showStatus('Could not save',false);} finally{saving=false;}
+ }
+ function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(()=>saveDraft(false),1200);}
+ function renderPhotoCount(i){const input=document.querySelectorAll('input[type=file]')[i];if(!input)return;let s=input.nextElementSibling?.nextElementSibling;let old=input.parentElement.querySelector('.saved-photo-count');if(!old){old=document.createElement('div');old.className='saved-photo-count';old.style.cssText='font-size:12px;color:#176b3a;margin-top:5px;font-weight:600';input.parentElement.appendChild(old);}const n=(draftPhotos[i]||[]).length;old.textContent=n?`✓ ${n} photo${n===1?'':'s'} saved`:'';}
+ async function restoreDraft(){
+   const id=new URLSearchParams(location.search).get('draft');if(!id)return;
+   try{const d=await dbGet(id);if(!d)return;draftId=id;draftPhotos=d.photos||{};
+     const cs=controls();(d.fields||[]).forEach(x=>{const e=cs[x.i];if(!e)return;if(e.type==='radio'||e.type==='checkbox')e.checked=x.checked;else e.value=x.value;});
+     if(typeof fillAddress==='function')fillAddress();
+     [...document.querySelectorAll('input[type=file]')].forEach((_,i)=>renderPhotoCount(i));
+     showStatus('Saved inspection restored ✓');
+   }catch(e){console.error(e);}
+ }
+ function bindAuto(){controls().forEach(e=>{e.addEventListener('input',scheduleSave);e.addEventListener('change',scheduleSave);});document.querySelectorAll('input[type=file]').forEach((e,i)=>e.addEventListener('change',()=>{saveDraft(false);}));}
+ const originalGetReport=window.getReport;
+ window.getReport=async function(){
+   const r=originalGetReport?await originalGetReport():{info:{},rows:[]};
+   const fileInputs=[...document.querySelectorAll('input[type=file]')];
+   for(let i=0;i<r.rows.length;i++){const f=fileInputs[i];if((!r.rows[i].photos||!r.rows[i].photos.length) && draftPhotos[i])r.rows[i].photos=draftPhotos[i];else if(draftPhotos[i]?.length)r.rows[i].photos=[...(draftPhotos[i]||[]),...(r.rows[i].photos||[])];}
+   return r;
+ };
+ window.addEventListener('beforeunload',()=>{try{saveDraft(false);}catch(e){}});
+ window.addEventListener('DOMContentLoaded',async()=>{addSaveUI();bindAuto();await restoreDraft();});
+})();
+</script>
+</body></html>
