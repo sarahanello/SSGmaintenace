@@ -138,4 +138,43 @@ async function shareWordReport(){const r=await getReport(),content=await makeWor
  window.addEventListener('DOMContentLoaded',async()=>{addSaveUI();bindAuto();await restoreDraft();});
 })();
 </script>
+<script>
+(function(){
+  function previewBox(input){
+    let box=input.parentElement.querySelector('.photo-preview-grid');
+    if(!box){
+      box=document.createElement('div'); box.className='photo-preview-grid';
+      box.style.cssText='display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-top:8px;';
+      input.insertAdjacentElement('afterend',box);
+    }
+    return box;
+  }
+  function makeThumb(data,name,idx,box){
+    const wrap=document.createElement('div'); wrap.style.cssText='position:relative;border:1px solid #ddd;border-radius:8px;padding:4px;background:#fff;';
+    const img=document.createElement('img'); img.src=data; img.alt=name||'Inspection photo'; img.style.cssText='width:100%;height:90px;object-fit:cover;border-radius:5px;display:block;';
+    const cap=document.createElement('div'); cap.textContent=name||`Photo ${idx+1}`; cap.style.cssText='font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px;';
+    wrap.append(img,cap); box.appendChild(wrap);
+  }
+  async function refresh(){
+    const inputs=[...document.querySelectorAll('input[type=file]')];
+    inputs.forEach((input,i)=>{
+      const box=previewBox(input); box.innerHTML='';
+      const arr=(window.draftPhotos&&window.draftPhotos[i])||[];
+      arr.forEach((p,j)=>makeThumb(p.data,p.name,j,box));
+      [...input.files||[]].forEach((file,j)=>{
+        const r=new FileReader(); r.onload=()=>makeThumb(r.result,file.name,j,box); r.readAsDataURL(file);
+      });
+    });
+  }
+  window.refreshAllPhotoPreviews=refresh;
+  document.addEventListener('change',e=>{if(e.target.matches('input[type=file]')) setTimeout(refresh,50);});
+  window.addEventListener('load',()=>setTimeout(refresh,500));
+  const old=window.renderPhotoCount;
+  if(typeof old==='function'){
+    window.renderPhotoCount=function(i){old(i);refresh();};
+  }
+  // Keep previews refreshed after saved drafts are restored.
+  setTimeout(refresh,1200);
+})();
+</script>
 </body></html>
